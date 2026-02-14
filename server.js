@@ -171,6 +171,11 @@ wss.on('connection', (ws) => {
               wss.clients.forEach(c => c.send(JSON.stringify({ type: 'room-list', rooms })));
               break;
           case 'edit-message':
+
+              if (content.length > 5000) {
+                  console.warn(`Blocked oversized message from ${username}`);
+                  return;
+              }
               await pool.query(
                     'UPDATE messages SET content = $1, is_edited = true WHERE id = $2 AND username = $3',
                     [msg.newContent, msg.id, msg.username]
@@ -198,6 +203,10 @@ wss.on('connection', (ws) => {
               break;
           case 'chat':
               const { id, room, username, content, timestamp } = msg;
+              if (content.length > 5000) {
+                  console.warn(`Blocked oversized message from ${username}`);
+                  return;
+              }
               await pool.query(
                 'INSERT INTO messages (id, room, username, content, timestamp) VALUES ($1, $2, $3, $4, $5)',
                 [id, room, username, content, new Date(timestamp)]

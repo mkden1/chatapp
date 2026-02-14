@@ -157,75 +157,81 @@ function initializeApp() {
         });
     }
 
-    // --- RESTORED ORIGINAL UI HELPERS ---
     function addMessage(msg, isPending = false) {
+        // 1. Guard against duplicates
         if (messageElements.has(msg.id) && !isPending && !msg.is_edited) return;
 
+        // 2. Remove existing for edits
         const existingMsg = document.getElementById(`msg-${msg.id}`);
         if (existingMsg) existingMsg.remove();
 
+        // 3. Create Wrapper
         const wrapper = document.createElement('div');
-        wrapper.id = `msg-${msg.id}`; 
+        wrapper.id = `msg-${msg.id}`;
         wrapper.className = `message ${msg.username === username ? 'own' : 'other'}`;
-        
-        const timeString = new Date(msg.timestamp).toLocaleTimeString([], { 
-            hour: '2-digit', minute: '2-digit' 
-        });
 
-        const editedTag = msg.is_edited ? '<small style="opacity:0.5; margin-left:5px;">(edited)</small>' : '';
+        // 4. Build Metadata (Username + Edited Tag)
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = msg.username; 
+        if (msg.is_edited) {
+            const edited = document.createElement('small');
+            edited.style.cssText = "opacity: 0.5; margin-left: 5px;";
+            edited.textContent = '(edited)';
+            meta.appendChild(edited);
+        }
+        wrapper.appendChild(meta);
 
-        // Check if content is a link to an image/gif
+        // 5. Build Content (Image or Text)
         const isImage = msg.content.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null || 
                         msg.content.includes("giphy.com/media");
 
-        let contentHTML;
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'content';
+
         if (isImage) {
-            // Set a strict max-height and use object-fit: contain to prevent stretching
-            contentHTML = `
-                <div class="content" style="background: none; padding: 0;">
-                    <img src="${msg.content}" 
-                        style="max-width: 250px; max-height: 200px; border-radius: 8px; display: block; margin-top: 5px; object-fit: contain; background: #2f3136;" 
-                    />
-                </div>`;
+            const img = document.createElement('img');
+            img.src = msg.content;
+            img.style.cssText = "max-width: 250px; max-height: 200px; border-radius: 8px; display: block; margin-top: 5px; object-fit: contain; background: #2f3136;";
+            contentDiv.style.cssText = "background: none; padding: 0;";
+            contentDiv.appendChild(img);
         } else {
-            contentHTML = `<div class="content">${msg.content}</div>`;
+            contentDiv.textContent = msg.content; // XSS Protection
         }
+        wrapper.appendChild(contentDiv);
 
-        wrapper.innerHTML = `
-            <div class="meta">${msg.username}${editedTag}</div>
-            ${contentHTML}
-            <span class="hover-timestamp">${timeString}</span>
-        `;
+        // 6. Add Timestamp
+        const timeString = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'hover-timestamp';
+        timeSpan.textContent = timeString;
+        wrapper.appendChild(timeSpan);
 
+        // 7. Ownership Features (Status & Context Menus)
         if (msg.username === username) {
-
-            // Inside addMessage function, where you handle the meta/content:
-            let pressTimer;
-
-            // Long Press (Mobile)
-            wrapper.ontouchstart = (e) => {
-                if (msg.username !== username) return;
-                pressTimer = window.setTimeout(() => {
-                    const touch = e.touches[0];
-                    showContextMenu(touch.pageX, touch.pageY, msg);
-                }, 600); // 0.6 seconds hold
-            };
-
-            wrapper.ontouchend = () => clearTimeout(pressTimer);
-            wrapper.ontouchmove = () => clearTimeout(pressTimer);
-
-            // Right Click (PC)
-            wrapper.oncontextmenu = (e) => {
-                if (msg.username !== username) return;
-                e.preventDefault();
-                showContextMenu(e.pageX, e.pageY, msg);
-            };
-
+            // Pending Status
             const statusDiv = document.createElement('div');
             statusDiv.className = 'status';
             statusDiv.textContent = isPending ? 'pending' : '';
             wrapper.appendChild(statusDiv);
             messageElements.set(msg.id, statusDiv);
+
+            // Mobile Long Press
+            let pressTimer;
+            wrapper.ontouchstart = (e) => {
+                pressTimer = window.setTimeout(() => {
+                    const touch = e.touches[0];
+                    showContextMenu(touch.pageX, touch.pageY, msg);
+                }, 600);
+            };
+            wrapper.ontouchend = () => clearTimeout(pressTimer);
+            wrapper.ontouchmove = () => clearTimeout(pressTimer);
+
+            // PC Right Click
+            wrapper.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e.pageX, e.pageY, msg);
+            };
         }
 
         messagesDiv.appendChild(wrapper);
