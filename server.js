@@ -145,7 +145,10 @@ wss.on('connection', (ws) => {
                 [msg.username]
               );
               ws.user = res.rows[0];
-              ws.send(JSON.stringify({ type: 'identified' }));
+              ws.send(JSON.stringify({ 
+                  type: 'identified', 
+                  giphyKey: process.env.GIPHY_API_KEY
+              }));
               broadcastUserList(); // Update everyone's sidebar
               break;
           case 'join-room':

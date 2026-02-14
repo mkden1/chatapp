@@ -237,3 +237,16 @@
     background: #43b581; /* Online green */
     border-radius: 50%;
 }
+
+#gifResults::-webkit-scrollbar {
+    width: 4px;
+}
+#gifResults::-webkit-scrollbar-thumb {
+    background: #202225;
+    border-radius: 10px;
+}
+#gifResults img:hover {
+    filter: brightness(1.2);
+    transform: scale(1.02);
+    transition: 0.2s;
+}

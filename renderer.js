@@ -20,6 +20,9 @@ const messageElements = new Map();
 let pendingMessages = []; 
 let isIdentified = false;
 
+const GIPHY_API_KEY = null;
+
+
 let editingMessageId = null; // Stores the ID of the message being edited
 
 // 3. UI INITIALIZATION
@@ -39,6 +42,9 @@ function initializeApp() {
     const userListDiv = document.getElementById('userList');
     const userCountSpan = document.getElementById('userCount');
 
+    const gifSearch = document.getElementById('gifSearch');
+    const gifResults = document.getElementById('gifResults');
+
     // --- Browser-only WebSocket Logic ---
     if (!isElectron) {
         function connectBrowser() {
@@ -52,6 +58,49 @@ function initializeApp() {
             browserSocket.onmessage = (event) => window.onChatMsg?.(JSON.parse(event.data));
         }
         connectBrowser();
+    }
+
+    gifSearch.oninput = async () => {
+        const query = gifSearch.value.trim();
+        if (query.length < 2) return;
+
+        // GIPHY Search Endpoint
+        const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${query}&limit=20&rating=g`;
+        
+        try {
+            const response = await fetch(url);
+            const { data } = await response.json();
+            renderGifs(data);
+        } catch (err) {
+            console.error("Giphy Error:", err);
+        }
+    };
+
+    function renderGifs(results) {
+        gifResults.innerHTML = '';
+        results.forEach(gif => {
+            const img = document.createElement('img');
+            // 'fixed_width_small' is perfect for the picker grid
+            img.src = gif.images.fixed_width_small.url;
+            img.style.width = '100%';
+            img.style.borderRadius = '4px';
+            img.style.cursor = 'pointer';
+            
+            img.onclick = () => {
+                // Send the high-quality original GIF URL
+                chat.sendMessage({
+                    type: 'chat',
+                    id: crypto.randomUUID(),
+                    room: currentRoom,
+                    username: username,
+                    content: gif.images.original.url, 
+                    timestamp: Date.now()
+                });
+                document.getElementById('gifPicker').style.display = 'none';
+                gifSearch.value = '';
+            };
+            gifResults.appendChild(img);
+        });
     }
 
     // --- RESTORED ORIGINAL UI HELPERS ---
@@ -71,9 +120,17 @@ function initializeApp() {
 
         const editedTag = msg.is_edited ? '<small style="opacity:0.5; margin-left:5px;">(edited)</small>' : '';
 
+        // Check if content is a link to an image/gif
+        const isImage = msg.content.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null || 
+                        msg.content.includes("giphy.com/media");
+
+        const contentHTML = isImage 
+            ? `<img src="${msg.content}" style="max-width:100%; max-height:300px; border-radius:8px; display:block; margin-top:5px;" />`
+            : `<div class="content">${msg.content}</div>`;
+
         wrapper.innerHTML = `
             <div class="meta">${msg.username}${editedTag}</div>
-            <div class="content">${msg.content}</div>
+            ${contentHTML}
             <span class="hover-timestamp">${timeString}</span>
         `;
 
@@ -278,6 +335,7 @@ function initializeApp() {
     chat.onMessage((msg) => {
         switch (msg.type) {
             case 'identified':
+                GIPHY_API_KEY = msg.giphyKey;
                 isIdentified = true;
                 chat.sendMessage({ type: 'get-rooms' });
                 if (currentRoom) chat.sendMessage({ type: 'join-room', room: currentRoom });
