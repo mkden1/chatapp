@@ -16,6 +16,64 @@ const pool = new Pool({
 const server = http.createServer();
 const wss = new WebSocketServer({ server });
 
+async function initDB() {
+  console.log("Checking/Initializing Database Schema...");
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Create Users Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL
+      );
+    `);
+
+    // 2. Create Rooms Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS rooms (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL
+      );
+    `);
+
+    // 3. Create Messages Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id UUID PRIMARY KEY,
+        room TEXT NOT NULL,
+        username TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp TIMESTAMPTZ NOT NULL
+      );
+    `);
+
+    // 4. Seed Default 'general' Room
+    await client.query(`
+      INSERT INTO rooms (name) 
+      VALUES ('general') 
+      ON CONFLICT (name) DO NOTHING;
+    `);
+
+    await client.query('COMMIT');
+    console.log("Database initialized successfully.");
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error("Error initializing database:", err);
+    process.exit(1); // Stop the server if DB setup fails
+  } finally {
+    client.release();
+  }
+}
+
+// Start the initialization before the server listens
+initDB().then(() => {
+  server.listen(PORT, () => {
+    console.log(`Chat server is running on port ${PORT}`);
+  });
+});
+
 // ----------------- Helpers -----------------
 
 async function getAllRooms() {
