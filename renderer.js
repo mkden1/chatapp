@@ -107,6 +107,29 @@ function initializeApp() {
         }
     }
 
+    // Close GIF picker when clicking elsewhere
+    document.addEventListener('mousedown', (e) => {
+        const gifPicker = document.getElementById('gifPicker');
+        const gifBtn = document.getElementById('gifBtn');
+
+        // If the picker is open AND the click was NOT on the picker or the button
+        if (gifPicker.style.display === 'flex' && 
+            !gifPicker.contains(e.target) && 
+            !gifBtn.contains(e.target)) {
+            
+            gifPicker.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const gifPicker = document.getElementById('gifPicker');
+            if (gifPicker.style.display === 'flex') {
+                gifPicker.style.display = 'none';
+            }
+        }
+    });
+
     function renderGifs(results) {
         gifResults.innerHTML = '';
         results.forEach(gif => {
