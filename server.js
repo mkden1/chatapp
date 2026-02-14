@@ -179,6 +179,3 @@ const interval = setInterval(() => {
 
 wss.on('close', () => clearInterval(interval));
 
-server.listen(PORT, () => {
-  console.log(`Chat server is running on port ${PORT}`);
-});
