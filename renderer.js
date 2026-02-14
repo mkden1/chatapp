@@ -20,7 +20,7 @@ const messageElements = new Map();
 let pendingMessages = []; 
 let isIdentified = false;
 
-const GIPHY_API_KEY = null;
+let GIPHY_API_KEY = null;
 
 
 let editingMessageId = null; // Stores the ID of the message being edited
