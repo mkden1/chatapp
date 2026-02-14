@@ -13,7 +13,30 @@ const pool = new Pool({
 });
 
 // Create an HTTP server to wrap the WebSocket server (best practice for Cloud)
-const server = http.createServer();
+const path = require('path');
+const fs = require('fs');
+
+const server = http.createServer((req, res) => {
+  // 1. Determine which file is being requested
+  let filePath = req.url === '/' ? './index.html' : `.${req.url}`;
+  const extname = path.extname(filePath);
+  
+  // 2. Set the right "Content-Type" so the browser knows what it's reading
+  const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+  const contentType = mimeTypes[extname] || 'application/octet-stream';
+
+  // 3. Read and send the file
+  fs.readFile(filePath, (error, content) => {
+    if (error) {
+      res.writeHead(404);
+      res.end('File not found');
+    } else {
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content, 'utf-8');
+    }
+  });
+});
+
 const wss = new WebSocketServer({ server });
 
 async function initDB() {
