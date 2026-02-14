@@ -1,152 +1,126 @@
-import { WebSocketServer } from 'ws';
-import { Pool } from 'pg';
-import { v4 as uuidv4 } from 'uuid';
+const { WebSocketServer, WebSocket } = require('ws');
+const { Pool } = require('pg');
+const http = require('http');
 
+// 1. Configuration & Environment Variables
+const PORT = process.env.PORT || 3000;
 const pool = new Pool({
-  user: 'postgres', host: 'localhost', database: 'chatapp', password: 'mkden', port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    // Required for Render/Supabase. While unverified, it's encrypted.
+    rejectUnauthorized: false 
+  }
 });
 
-const wss = new WebSocketServer({ port: 3000 });
-console.log("Server running on ws://localhost:3000");
+// Create an HTTP server to wrap the WebSocket server (best practice for Cloud)
+const server = http.createServer();
+const wss = new WebSocketServer({ server });
 
-// --- HELPER FUNCTIONS (The fix for your error) ---
-async function getRoomByName(name) {
-  const res = await pool.query('SELECT * FROM rooms WHERE name=$1', [name]);
-  return res.rows[0];
-}
-
-async function getOrCreateRoom(name) {
-  const res = await pool.query(
-    'INSERT INTO rooms (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name=EXCLUDED.name RETURNING *',
-    [name]
-  );
-  return res.rows[0];
-}
+// ----------------- Helpers -----------------
 
 async function getAllRooms() {
   const res = await pool.query('SELECT name FROM rooms ORDER BY name ASC');
   return res.rows.map(r => r.name);
 }
 
-
 function getOnlineUsers() {
   const users = [];
   wss.clients.forEach(client => {
-    if (client.readyState === 1 && client.user) {
+    if (client.readyState === WebSocket.OPEN && client.user) {
       users.push(client.user.username);
     }
   });
-  // Remove duplicates (in case one user has two tabs open)
-  return [...new Set(users)];
+  return [...new Set(users)]; // Deduplicate
 }
 
 function broadcastUserList() {
-  const userList = getOnlineUsers();
-  const msg = JSON.stringify({ type: 'user-list', users: userList });
+  const msg = JSON.stringify({ type: 'user-list', users: getOnlineUsers() });
   wss.clients.forEach(client => {
-    if (client.readyState === 1) client.send(msg);
+    if (client.readyState === WebSocket.OPEN) client.send(msg);
   });
 }
 
+// Heartbeat function to keep connections alive on Render
+function heartbeat() {
+  this.isAlive = true;
+}
+
+// ----------------- Main Logic -----------------
+
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', heartbeat); // Client responds to ping automatically
+
   ws.on('message', async (data) => {
-    const msg = JSON.parse(data.toString());
+    try {
+      const msg = JSON.parse(data.toString());
 
-    if (msg.type === 'identify') {
-      const res = await pool.query(
-        'INSERT INTO users (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING *',
-        [msg.username]
-      );
-      ws.user = res.rows[0];
-      ws.send(JSON.stringify({ type: 'identified' }));
-
-      broadcastUserList();
-
-      const rooms = await getAllRooms();
-      ws.send(JSON.stringify({ type: 'room-list', rooms }));
-    }
-
-    if (msg.type === 'create-room') {
-        // 1. Save to DB
-        await pool.query('INSERT INTO rooms (name) VALUES ($1) ON CONFLICT DO NOTHING', [msg.room]);
-        
-        // 2. Get the updated list
-        const rooms = await getAllRooms(); // Use your helper to get all room names
-        const updateMsg = JSON.stringify({ type: 'room-list', rooms });
-
-        // 3. Broadcast to EVERYONE connected
-        wss.clients.forEach(client => {
-            if (client.readyState === 1) {
-                client.send(updateMsg);
-            }
-        });
-    }
-
-    if (msg.type === 'join-room') {
-        if (!ws.user) return;
-        const room = await getOrCreateRoom(msg.room);
-        ws.currentRoom = room.name;
-
-        // FIX: Grab the LATEST 50, then sort them ASC for the UI
-        const historyRes = await pool.query(
-        `SELECT * FROM (
-            SELECT m.id, u.username, m.content, m.timestamp 
-            FROM messages m 
-            JOIN users u ON m.sender_id = u.id 
-            WHERE m.room_id = $1 
-            ORDER BY m.timestamp DESC 
-            LIMIT 50
-        ) sub ORDER BY timestamp ASC`,
-        [room.id]
-        );
-
-        ws.send(JSON.stringify({
-            type: 'history',
-            room: room.name,
-            messages: historyRes.rows.map(r => ({
-                type: 'chat',
-                id: r.id,
-                room: room.name,
-                username: r.username,
-                content: r.content,
-                timestamp: Number(r.timestamp)
-            }))
-        }));
-    }
-
-    if (msg.type === 'chat') {
-        if (!ws.user || !ws.currentRoom) return;
-        const room = await getRoomByName(ws.currentRoom);
-        
-        const messageId = msg.id || uuidv4();
-        const timestamp = Date.now();
-
-        // res.rowCount will be 1 if it's new, 0 if it already exists
+      if (msg.type === 'identify') {
+        // Upsert user into DB
         const res = await pool.query(
-            'INSERT INTO messages (id, room_id, sender_id, content, timestamp) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id) DO NOTHING',
-            [messageId, room.id, ws.user.id, msg.content, timestamp]
+          'INSERT INTO users (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING *',
+          [msg.username]
         );
+        ws.user = res.rows[0];
+        ws.send(JSON.stringify({ type: 'identified' }));
+        broadcastUserList(); // Update everyone's sidebar
+      }
 
-        const broadcastMsg = JSON.stringify({
-            type: 'chat', id: messageId, room: room.name, username: ws.user.username, content: msg.content, timestamp
+      if (msg.type === 'get-rooms') {
+        const rooms = await getAllRooms();
+        ws.send(JSON.stringify({ type: 'room-list', rooms }));
+      }
+
+      if (msg.type === 'create-room') {
+        await pool.query('INSERT INTO rooms (name) VALUES ($1) ON CONFLICT DO NOTHING', [msg.room]);
+        const rooms = await getAllRooms();
+        // Broadcast new room list to everyone
+        wss.clients.forEach(c => c.send(JSON.stringify({ type: 'room-list', rooms })));
+      }
+
+      if (msg.type === 'join-room') {
+        ws.currentRoom = msg.room;
+        const history = await pool.query(
+          'SELECT * FROM messages WHERE room = $1 ORDER BY timestamp ASC LIMIT 50',
+          [msg.room]
+        );
+        ws.send(JSON.stringify({ type: 'history', messages: history.rows }));
+      }
+
+      if (msg.type === 'chat') {
+        const { id, room, username, content, timestamp } = msg;
+        await pool.query(
+          'INSERT INTO messages (id, room, username, content, timestamp) VALUES ($1, $2, $3, $4, $5)',
+          [id, room, username, content, new Date(timestamp)]
+        );
+        // Broadcast message to everyone in the same room
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN && client.currentRoom === room) {
+            client.send(JSON.stringify(msg));
+          }
         });
-
-        if (res.rowCount > 0) {
-            // NEW MESSAGE: Broadcast to everyone in the room
-            wss.clients.forEach(client => {
-            if (client.readyState === 1 && client.currentRoom === room.name) {
-                client.send(broadcastMsg);
-            }
-            });
-        } else {
-            // DUPLICATE/RETRY: Only send back to the sender so their UI clears "pending"
-            ws.send(broadcastMsg);
-        }
+      }
+    } catch (err) {
+      console.error("Server Error:", err);
     }
   });
 
   ws.on('close', () => {
-    console.log("User disconnected");
-    broadcastUserList();
+    broadcastUserList(); // Update online list when someone leaves
   });
+});
+
+// Interval to ping clients every 30s to prevent Render idle timeout
+const interval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+wss.on('close', () => clearInterval(interval));
+
+server.listen(PORT, () => {
+  console.log(`Chat server is running on port ${PORT}`);
 });
