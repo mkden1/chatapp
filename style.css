@@ -1,109 +1,239 @@
-/* 1. Base Styles & Layout */
-body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden; /* Prevents the whole page from bouncing on mobile */
-}
-
-.app-container {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-    background: #f0f2f5;
-}
-
-/* 2. Sidebars */
-.sidebar {
-    width: 200px;
-    background: #2c3e50;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    flex-shrink: 0;
-}
-
-.sidebar h3 {
-    margin-top: 0;
-    font-size: 1.1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* 3. Main Chat Area */
-.main-chat {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-left: 1px solid #ddd;
-    border-right: 1px solid #ddd;
-}
-
-#messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 20px;
-}
-
-.message {
-    margin-bottom: 15px;
-    padding: 8px 12px;
-    background: #e9ebee;
-    border-radius: 8px;
-    max-width: 80%;
-    align-self: flex-start;
-}
-
-/* 4. Input Area */
-.input-area {
-    padding: 15px;
-    display: flex;
-    gap: 10px;
-    border-top: 1px solid #ddd;
-}
-
-.input-area input {
-    flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    outline: none;
-}
-
-/* 5. Login Overlay */
-.overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.login-box {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    text-align: center;
-}
-
-/* 6. MOBILE RESPONSIVENESS (The Magic Part) */
-@media (max-width: 768px) {
-    /* Hide sidebars on small screens to prioritize the chat */
-    .sidebar {
-        display: none; 
+ /* 1. Base Layout */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #2f3136;
+      color: white;
+      overflow: hidden;
     }
-    
-    .main-chat {
-        width: 100%;
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* 2. Top Header & Login */
+    .header {
+      background: #202225;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #18191c;
+    }
+
+    .login {
+      padding: 15px;
+      background: #36393f;
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid #202225;
+    }
+
+    /* 3. Sidebar (Rooms) */
+    #rooms {
+      width: 200px;
+      background: #2f3136;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      border-right: 1px solid #202225;
+    }
+
+    #rooms h3 {
+      font-size: 0.8rem;
+      color: #8e9297;
+      text-transform: uppercase;
+      margin: 10px 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #rooms h3 button {
+      background: none;
+      border: none;
+      color: #b9bbbe;
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    #rooms h3 button:hover {
+      color: white;
+    }
+
+    .room-btn {
+      background: none;
+      border: none;
+      color: #8e9297;
+      text-align: left;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      font-size: 0.95rem;
+    }
+
+    .room-btn.active {
+      background: #393c43;
+      color: white;
+    }
+
+    .room-btn:hover:not(.active) {
+      background: #34373c;
+      color: #dcddde;
+    }
+
+    /* 4. Chat Area */
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: #36393f;
     }
 
     .message {
-        max-width: 95%;
+      position: relative;
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 8px;
+      word-wrap: break-word;
+      display: flex;
+      flex-direction: column;
     }
+
+    .message.other {
+      background: #40444b;
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+    }
+
+    .message.own {
+      background: #5865f2;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+    }
+
+    /* 5. Message Content & Status */
+    .meta {
+      font-size: 0.75rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+      opacity: 0.9;
+    }
+
+    .status {
+      font-size: 0.65rem;
+      font-style: italic;
+      text-align: right;
+      margin-top: 4px;
+      opacity: 0.8;
+    }
+
+    /* 6. Hover Timestamp */
+    .hover-timestamp {
+      display: none;
+      position: absolute;
+      bottom: -20px;
+      font-size: 0.7rem;
+      color: #b9bbbe;
+      background: #18191c;
+      padding: 2px 6px;
+      border-radius: 4px;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    .message:hover .hover-timestamp {
+      display: block;
+    }
+
+    .message.own .hover-timestamp { right: 0; }
+    .message.other .hover-timestamp { left: 0; }
+
+    /* 7. Input Area */
+    .input-area {
+      display: flex;
+      padding: 20px;
+      background: #36393f;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      background: #40444b;
+      color: white;
+      margin-right: 15px;
+    }
+
+    .input-area input:focus {
+      outline: none;
+      background: #454950;
+    }
+
+    .input-area button {
+      padding: 0 20px;
+      border-radius: 8px;
+      border: none;
+      background: #5865f2;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .input-area button:hover {
+      background: #4752c4;
+    }
+
+    #status {
+      font-size: 0.8rem;
+      color: #43b581; /* Default green */
+    }
+
+    /* 8. Custom Scrollbar Styling */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #2e3338;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #202225;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #18191c;
+    }
+
+    /* Ensure only the message area and rooms scroll */
+    .messages, #rooms {
+        scrollbar-gutter: stable;
+    }
+
+    .user-item {
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    color: #b9bbbe;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-item::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: #43b581; /* Online green */
+    border-radius: 50%;
 }

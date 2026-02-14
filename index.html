@@ -1,44 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Cloud Chat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Chat App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="loginOverlay" class="overlay">
-        <div class="login-box">
-            <h2>Enter Username</h2>
-            <input type="text" id="usernameInput" placeholder="Username...">
-            <button id="loginBtn">Join Chat</button>
-        </div>
+
+  <div class="app">
+    <div class="header">
+      <h2>Chat App</h2>
+      <span id="statusText">Connecting...</span>
     </div>
 
-    <div class="app-container">
-        <div id="rooms" class="sidebar">
-            <div id="newRoomControls" style="display: none; padding: 10px;">
-                <input type="text" id="newRoomInput" placeholder="Room name...">
-                <button id="confirmRoomBtn">OK</button>
-                <button id="cancelRoomBtn">X</button>
-            </div>
-            </div>
-
-        <div class="main-chat">
-            <div id="statusText">Status: Connecting...</div>
-            <div id="messages"></div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Type a message...">
-                <button id="sendBtn">Send</button>
-            </div>
-        </div>
-
-        <div id="usersSidebar" class="sidebar">
-            <h3>Online (<span id="userCount">0</span>)</h3>
-            <div id="userList"></div>
-        </div>
+    <div id="loginOverlay" class="login">
+      <input type="text" id="usernameInput" placeholder="What's your username?" />
+      <button id="loginBtn">Join Chat</button>
     </div>
 
-    <script src="renderer.js"></script>
+    <div style="display: flex; flex: 1; overflow: hidden;">
+      
+      <div id="rooms">
+          <div id="newRoomControls" style="display: none; padding: 10px 0;">
+              <input type="text" id="newRoomInput" placeholder="room-name" 
+                    style="width: 100%; padding: 5px; background: #40444b; color: white; border: 1px solid #5865f2; border-radius: 4px;" />
+              <div style="display: flex; gap: 5px; margin-top: 5px;">
+                  <button id="confirmRoomBtn" style="flex: 1; background: #43b581; color: white; border: none; border-radius: 3px; cursor: pointer;">Add</button>
+                  <button id="cancelRoomBtn" style="flex: 1; background: #f04747; color: white; border: none; border-radius: 3px; cursor: pointer;">X</button>
+              </div>
+          </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; flex: 1;">
+        <div id="messages" class="messages"></div>
+        <div class="input-area">
+          <input type="text" id="messageInput" placeholder="Message..." />
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <div id="users" style="width: 200px; background: #2f3136; border-left: 1px solid #202225; padding: 10px;">
+          <h3 style="font-size: 0.8rem; color: #8e9297; text-transform: uppercase; margin: 10px 5px;">Online — <span id="userCount">0</span></h3>
+          <div id="userList" style="display: flex; flex-direction: column; gap: 5px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
 </body>
 </html>
