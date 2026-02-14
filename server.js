@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { WebSocketServer, WebSocket } = require('ws');
 const { Pool } = require('pg');
 const http = require('http');

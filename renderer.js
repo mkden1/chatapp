@@ -42,6 +42,8 @@ function initializeApp() {
     const userListDiv = document.getElementById('userList');
     const userCountSpan = document.getElementById('userCount');
 
+    const gifBtn = document.getElementById('gifBtn');
+    const gifPicker = document.getElementById('gifPicker');
     const gifSearch = document.getElementById('gifSearch');
     const gifResults = document.getElementById('gifResults');
 
@@ -60,21 +62,50 @@ function initializeApp() {
         connectBrowser();
     }
 
-    gifSearch.oninput = async () => {
-        const query = gifSearch.value.trim();
-        if (query.length < 2) return;
+    if (gifBtn && gifPicker && gifSearch && gifResults) {
+        
+        gifBtn.onclick = () => {
+            const isHidden = gifPicker.style.display === 'none';
+            gifPicker.style.display = isHidden ? 'flex' : 'none';
+            if (isHidden) {
+                gifSearch.focus();
+                // Optional: Fetch trending if search is empty
+                if (gifSearch.value === '') fetchTrendingGifs(); 
+            }
+        };
 
-        // GIPHY Search Endpoint
-        const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${query}&limit=20&rating=g`;
+        gifSearch.oninput = async () => {
+            const query = gifSearch.value.trim();
+            if (query.length < 2) return;
+            
+            if (!GIPHY_API_KEY) {
+                console.error("Giphy Key not received from server yet");
+                return;
+            }
+
+            const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${query}&limit=20&rating=g`;
+            const response = await fetch(url);
+            const { data } = await response.json();
+            renderGifs(data);
+        };
+    } else {
+        console.warn("GIF Picker elements missing from HTML. GIF feature disabled.");
+    }
+
+    async function fetchTrendingGifs() {
+        if (!GIPHY_API_KEY) return;
+
+        // Trending endpoint shows what's popular right now
+        const url = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=g`;
         
         try {
             const response = await fetch(url);
             const { data } = await response.json();
-            renderGifs(data);
+            renderGifs(data); // Reuse your existing renderGifs logic
         } catch (err) {
-            console.error("Giphy Error:", err);
+            console.error("Giphy Trending Error:", err);
         }
-    };
+    }
 
     function renderGifs(results) {
         gifResults.innerHTML = '';
