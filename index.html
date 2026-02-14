@@ -1,291 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Chat App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    /* 1. Base Layout */
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #2f3136;
-      color: white;
-      overflow: hidden;
-    }
-
-    .app {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    /* 2. Top Header & Login */
-    .header {
-      background: #202225;
-      padding: 10px 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #18191c;
-    }
-
-    .login {
-      padding: 15px;
-      background: #36393f;
-      display: flex;
-      gap: 10px;
-      border-bottom: 1px solid #202225;
-    }
-
-    /* 3. Sidebar (Rooms) */
-    #rooms {
-      width: 200px;
-      background: #2f3136;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      border-right: 1px solid #202225;
-    }
-
-    #rooms h3 {
-      font-size: 0.8rem;
-      color: #8e9297;
-      text-transform: uppercase;
-      margin: 10px 5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    #rooms h3 button {
-      background: none;
-      border: none;
-      color: #b9bbbe;
-      font-size: 1.2rem;
-      cursor: pointer;
-      line-height: 1;
-    }
-
-    #rooms h3 button:hover {
-      color: white;
-    }
-
-    .room-btn {
-      background: none;
-      border: none;
-      color: #8e9297;
-      text-align: left;
-      padding: 8px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-      margin-bottom: 2px;
-      font-size: 0.95rem;
-    }
-
-    .room-btn.active {
-      background: #393c43;
-      color: white;
-    }
-
-    .room-btn:hover:not(.active) {
-      background: #34373c;
-      color: #dcddde;
-    }
-
-    /* 4. Chat Area */
-    .messages {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      background: #36393f;
-    }
-
-    .message {
-      position: relative;
-      max-width: 70%;
-      padding: 10px 15px;
-      border-radius: 8px;
-      word-wrap: break-word;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .message.other {
-      background: #40444b;
-      align-self: flex-start;
-      border-bottom-left-radius: 2px;
-    }
-
-    .message.own {
-      background: #5865f2;
-      align-self: flex-end;
-      border-bottom-right-radius: 2px;
-    }
-
-    /* 5. Message Content & Status */
-    .meta {
-      font-size: 0.75rem;
-      font-weight: bold;
-      margin-bottom: 5px;
-      opacity: 0.9;
-    }
-
-    .status {
-      font-size: 0.65rem;
-      font-style: italic;
-      text-align: right;
-      margin-top: 4px;
-      opacity: 0.8;
-    }
-
-    /* 6. Hover Timestamp */
-    .hover-timestamp {
-      display: none;
-      position: absolute;
-      bottom: -20px;
-      font-size: 0.7rem;
-      color: #b9bbbe;
-      background: #18191c;
-      padding: 2px 6px;
-      border-radius: 4px;
-      z-index: 10;
-      white-space: nowrap;
-    }
-
-    .message:hover .hover-timestamp {
-      display: block;
-    }
-
-    .message.own .hover-timestamp { right: 0; }
-    .message.other .hover-timestamp { left: 0; }
-
-    /* 7. Input Area */
-    .input-area {
-      display: flex;
-      padding: 20px;
-      background: #36393f;
-    }
-
-    .input-area input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      background: #40444b;
-      color: white;
-      margin-right: 15px;
-    }
-
-    .input-area input:focus {
-      outline: none;
-      background: #454950;
-    }
-
-    .input-area button {
-      padding: 0 20px;
-      border-radius: 8px;
-      border: none;
-      background: #5865f2;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .input-area button:hover {
-      background: #4752c4;
-    }
-
-    #status {
-      font-size: 0.8rem;
-      color: #43b581; /* Default green */
-    }
-
-    /* 8. Custom Scrollbar Styling */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #2e3338;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: #202225;
-        border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: #18191c;
-    }
-
-    /* Ensure only the message area and rooms scroll */
-    .messages, #rooms {
-        scrollbar-gutter: stable;
-    }
-
-    .user-item {
-    padding: 5px 10px;
-    font-size: 0.9rem;
-    color: #b9bbbe;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.user-item::before {
-    content: "";
-    width: 8px;
-    height: 8px;
-    background: #43b581; /* Online green */
-    border-radius: 50%;
-}
-  </style>
+    <meta charset="UTF-8">
+    <title>Cloud Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <div class="app">
-    <div class="header">
-      <h2>Chat App</h2>
-      <span id="status">Connecting...</span>
-    </div>
-
-    <div id="login" class="login">
-      <input type="text" id="usernameInput" placeholder="What's your username?" />
-      <button id="setUsernameBtn">Join Chat</button>
-    </div>
-
-    <div style="display: flex; flex: 1; overflow: hidden;">
-      
-      <div id="rooms">
-          <div id="newRoomControls" style="display: none; padding: 10px 0;">
-              <input type="text" id="newRoomInput" placeholder="room-name" 
-                    style="width: 100%; padding: 5px; background: #40444b; color: white; border: 1px solid #5865f2; border-radius: 4px;" />
-              <div style="display: flex; gap: 5px; margin-top: 5px;">
-                  <button id="confirmRoomBtn" style="flex: 1; background: #43b581; color: white; border: none; border-radius: 3px; cursor: pointer;">Add</button>
-                  <button id="cancelRoomBtn" style="flex: 1; background: #f04747; color: white; border: none; border-radius: 3px; cursor: pointer;">X</button>
-              </div>
-          </div>
-      </div>
-      <div style="display: flex; flex-direction: column; flex: 1;">
-        <div id="messages" class="messages"></div>
-        <div class="input-area">
-          <input type="text" id="messageInput" placeholder="Message..." />
-          <button id="sendBtn">Send</button>
+    <div id="loginOverlay" class="overlay">
+        <div class="login-box">
+            <h2>Enter Username</h2>
+            <input type="text" id="usernameInput" placeholder="Username...">
+            <button id="loginBtn">Join Chat</button>
         </div>
-      </div>
-      <div id="users" style="width: 200px; background: #2f3136; border-left: 1px solid #202225; padding: 10px;">
-          <h3 style="font-size: 0.8rem; color: #8e9297; text-transform: uppercase; margin: 10px 5px;">Online — <span id="userCount">0</span></h3>
-          <div id="userList" style="display: flex; flex-direction: column; gap: 5px;"></div>
-      </div>
-
     </div>
-  </div>
 
-  <script src="renderer.js"></script>
+    <div class="app-container">
+        <div id="rooms" class="sidebar">
+            <div id="newRoomControls" style="display: none; padding: 10px;">
+                <input type="text" id="newRoomInput" placeholder="Room name...">
+                <button id="confirmRoomBtn">OK</button>
+                <button id="cancelRoomBtn">X</button>
+            </div>
+            </div>
+
+        <div class="main-chat">
+            <div id="statusText">Status: Connecting...</div>
+            <div id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="messageInput" placeholder="Type a message...">
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+
+        <div id="usersSidebar" class="sidebar">
+            <h3>Online (<span id="userCount">0</span>)</h3>
+            <div id="userList"></div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
 </body>
 </html>

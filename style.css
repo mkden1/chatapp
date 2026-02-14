@@ -1,0 +1,109 @@
+/* 1. Base Styles & Layout */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden; /* Prevents the whole page from bouncing on mobile */
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background: #f0f2f5;
+}
+
+/* 2. Sidebars */
+.sidebar {
+    width: 200px;
+    background: #2c3e50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    flex-shrink: 0;
+}
+
+.sidebar h3 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 3. Main Chat Area */
+.main-chat {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+#messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.message {
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background: #e9ebee;
+    border-radius: 8px;
+    max-width: 80%;
+    align-self: flex-start;
+}
+
+/* 4. Input Area */
+.input-area {
+    padding: 15px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.input-area input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+}
+
+/* 5. Login Overlay */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.login-box {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* 6. MOBILE RESPONSIVENESS (The Magic Part) */
+@media (max-width: 768px) {
+    /* Hide sidebars on small screens to prioritize the chat */
+    .sidebar {
+        display: none; 
+    }
+    
+    .main-chat {
+        width: 100%;
+    }
+
+    .message {
+        max-width: 95%;
+    }
+}
