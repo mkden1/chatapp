@@ -155,9 +155,18 @@ function initializeApp() {
         const isImage = msg.content.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null || 
                         msg.content.includes("giphy.com/media");
 
-        const contentHTML = isImage 
-            ? `<img src="${msg.content}" style="max-width:100%; max-height:300px; border-radius:8px; display:block; margin-top:5px;" />`
-            : `<div class="content">${msg.content}</div>`;
+        let contentHTML;
+        if (isImage) {
+            // Set a strict max-height and use object-fit: contain to prevent stretching
+            contentHTML = `
+                <div class="content" style="background: none; padding: 0;">
+                    <img src="${msg.content}" 
+                        style="max-width: 250px; max-height: 200px; border-radius: 8px; display: block; margin-top: 5px; object-fit: contain; background: #2f3136;" 
+                    />
+                </div>`;
+        } else {
+            contentHTML = `<div class="content">${msg.content}</div>`;
+        }
 
         wrapper.innerHTML = `
             <div class="meta">${msg.username}${editedTag}</div>

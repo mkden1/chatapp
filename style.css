@@ -245,8 +245,16 @@
     background: #202225;
     border-radius: 10px;
 }
+#gifResults img {
+    width: 100%;
+    height: 100px; /* Forces a uniform height in the grid */
+    object-fit: cover; /* Crops them into squares for the grid */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
 #gifResults img:hover {
-    filter: brightness(1.2);
-    transform: scale(1.02);
-    transition: 0.2s;
+    transform: scale(1.05);
+    filter: brightness(1.1);
 }
