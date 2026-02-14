@@ -79,7 +79,24 @@ function initializeApp() {
 
         if (msg.username === username) {
 
+            // Inside addMessage function, where you handle the meta/content:
+            let pressTimer;
+
+            // Long Press (Mobile)
+            wrapper.ontouchstart = (e) => {
+                if (msg.username !== username) return;
+                pressTimer = window.setTimeout(() => {
+                    const touch = e.touches[0];
+                    showContextMenu(touch.pageX, touch.pageY, msg);
+                }, 600); // 0.6 seconds hold
+            };
+
+            wrapper.ontouchend = () => clearTimeout(pressTimer);
+            wrapper.ontouchmove = () => clearTimeout(pressTimer);
+
+            // Right Click (PC)
             wrapper.oncontextmenu = (e) => {
+                if (msg.username !== username) return;
                 e.preventDefault();
                 showContextMenu(e.pageX, e.pageY, msg);
             };
