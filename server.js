@@ -68,7 +68,9 @@ async function initDB() {
         room TEXT NOT NULL,
         username TEXT NOT NULL,
         content TEXT NOT NULL,
-        timestamp TIMESTAMPTZ NOT NULL
+        timestamp TIMESTAMPTZ NOT NULL,
+        is_edited BOOLEAN DEFAULT FALSE,
+        is_deleted BOOLEAN DEFAULT FALSE
       );
     `);
 
@@ -136,50 +138,78 @@ wss.on('connection', (ws) => {
     try {
       const msg = JSON.parse(data.toString());
 
-      if (msg.type === 'identify') {
-        // Upsert user into DB
-        const res = await pool.query(
-          'INSERT INTO users (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING *',
-          [msg.username]
-        );
-        ws.user = res.rows[0];
-        ws.send(JSON.stringify({ type: 'identified' }));
-        broadcastUserList(); // Update everyone's sidebar
+      switch (msg.type) {
+          case 'identify':
+              const res = await pool.query(
+                'INSERT INTO users (username) VALUES ($1) ON CONFLICT (username) DO UPDATE SET username=EXCLUDED.username RETURNING *',
+                [msg.username]
+              );
+              ws.user = res.rows[0];
+              ws.send(JSON.stringify({ type: 'identified' }));
+              broadcastUserList(); // Update everyone's sidebar
+              break;
+          case 'join-room':
+              ws.currentRoom = msg.room;
+              const history = await pool.query(
+                'SELECT * FROM messages WHERE room = $1 AND is_deleted = false ORDER BY timestamp ASC LIMIT 50',
+                [msg.room]
+              );
+              ws.send(JSON.stringify({ type: 'history', messages: history.rows }));
+              break;
+          case 'get-rooms':
+              const rooms = await getAllRooms();
+              ws.send(JSON.stringify({ type: 'room-list', rooms }));
+              break;
+          case 'create-room':
+              await pool.query('INSERT INTO rooms (name) VALUES ($1) ON CONFLICT DO NOTHING', [msg.room]);
+              
+              // Broadcast new room list to everyone
+              wss.clients.forEach(c => c.send(JSON.stringify({ type: 'room-list', rooms })));
+              break;
+          case 'edit-message':
+              await pool.query(
+                    'UPDATE messages SET content = $1, is_edited = true WHERE id = $2 AND username = $3',
+                    [msg.newContent, msg.id, msg.username]
+                );
+                wss.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN && client.currentRoom === msg.room) {
+                        client.send(JSON.stringify({ 
+                            type: 'message-edited', 
+                            id: msg.id, 
+                            newContent: msg.newContent 
+                        }));
+                    }
+                });
+              break;
+          case 'delete-message':
+              await pool.query(
+                    'UPDATE messages SET is_deleted = true WHERE id = $1 AND username = $2',
+                    [msg.id, msg.username]
+                );
+              wss.clients.forEach(client => {
+                  if (client.readyState === WebSocket.OPEN && client.currentRoom === msg.room) {
+                      client.send(JSON.stringify({ type: 'message-deleted', id: msg.id }));
+                  }
+              });
+              break;
+          case 'chat':
+              const { id, room, username, content, timestamp } = msg;
+              await pool.query(
+                'INSERT INTO messages (id, room, username, content, timestamp) VALUES ($1, $2, $3, $4, $5)',
+                [id, room, username, content, new Date(timestamp)]
+              );
+              // Broadcast message to everyone in the same room
+              wss.clients.forEach(client => {
+                if (client.readyState === WebSocket.OPEN && client.currentRoom === room) {
+                  client.send(JSON.stringify(msg));
+                }
+              });
+              break;
       }
 
-      if (msg.type === 'get-rooms') {
-        const rooms = await getAllRooms();
-        ws.send(JSON.stringify({ type: 'room-list', rooms }));
-      }
-
-      if (msg.type === 'create-room') {
-        await pool.query('INSERT INTO rooms (name) VALUES ($1) ON CONFLICT DO NOTHING', [msg.room]);
-        const rooms = await getAllRooms();
-        // Broadcast new room list to everyone
-        wss.clients.forEach(c => c.send(JSON.stringify({ type: 'room-list', rooms })));
-      }
-
-      if (msg.type === 'join-room') {
-        ws.currentRoom = msg.room;
-        const history = await pool.query(
-          'SELECT * FROM messages WHERE room = $1 ORDER BY timestamp ASC LIMIT 50',
-          [msg.room]
-        );
-        ws.send(JSON.stringify({ type: 'history', messages: history.rows }));
-      }
 
       if (msg.type === 'chat') {
-        const { id, room, username, content, timestamp } = msg;
-        await pool.query(
-          'INSERT INTO messages (id, room, username, content, timestamp) VALUES ($1, $2, $3, $4, $5)',
-          [id, room, username, content, new Date(timestamp)]
-        );
-        // Broadcast message to everyone in the same room
-        wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN && client.currentRoom === room) {
-            client.send(JSON.stringify(msg));
-          }
-        });
+
       }
     } catch (err) {
       console.error("Server Error:", err);

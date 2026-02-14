@@ -20,6 +20,8 @@ const messageElements = new Map();
 let pendingMessages = []; 
 let isIdentified = false;
 
+let editingMessageId = null; // Stores the ID of the message being edited
+
 // 3. UI INITIALIZATION
 function initializeApp() {
     // Get all elements by ID
@@ -54,22 +56,34 @@ function initializeApp() {
 
     // --- RESTORED ORIGINAL UI HELPERS ---
     function addMessage(msg, isPending = false) {
-        if (messageElements.has(msg.id) && !isPending) return;
+        if (messageElements.has(msg.id) && !isPending && !msg.is_edited) return;
+
+        const existingMsg = document.getElementById(`msg-${msg.id}`);
+        if (existingMsg) existingMsg.remove();
 
         const wrapper = document.createElement('div');
+        wrapper.id = `msg-${msg.id}`; 
         wrapper.className = `message ${msg.username === username ? 'own' : 'other'}`;
         
         const timeString = new Date(msg.timestamp).toLocaleTimeString([], { 
             hour: '2-digit', minute: '2-digit' 
         });
 
+        const editedTag = msg.is_edited ? '<small style="opacity:0.5; margin-left:5px;">(edited)</small>' : '';
+
         wrapper.innerHTML = `
-            <div class="meta">${msg.username}</div>
+            <div class="meta">${msg.username}${editedTag}</div>
             <div class="content">${msg.content}</div>
             <span class="hover-timestamp">${timeString}</span>
         `;
 
         if (msg.username === username) {
+
+            wrapper.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e.pageX, e.pageY, msg);
+            };
+
             const statusDiv = document.createElement('div');
             statusDiv.className = 'status';
             statusDiv.textContent = isPending ? 'pending' : '';
@@ -79,6 +93,45 @@ function initializeApp() {
 
         messagesDiv.appendChild(wrapper);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function showContextMenu(x, y, msg) {
+        const existing = document.getElementById('ctx-menu');
+        if (existing) existing.remove();
+
+        const menu = document.createElement('div');
+        menu.id = 'ctx-menu';
+        // Discord-like dark theme for the menu
+        menu.style = `position:fixed; top:${y}px; left:${x}px; background:#18191c; color:#dcddde; border-radius:4px; padding:8px 0; z-index:10000; box-shadow: 0 8px 16px rgba(0,0,0,0.24); min-width:120px; font-size: 14px; border: 1px solid #000;`;
+        
+        menu.innerHTML = `
+            <div id="edit-opt" style="padding:8px 12px; cursor:pointer;">Edit Message</div>
+            <div id="del-opt" style="padding:8px 12px; cursor:pointer; color:#f04747;">Delete Message</div>
+        `;
+        document.body.appendChild(menu);
+
+        document.getElementById('edit-opt').onclick = () => {
+            editingMessageId = msg.id;
+            input.value = msg.content; // Put the message text into the main input
+            input.focus();
+            
+            // Change the UI to show we are in "Edit Mode"
+            sendBtn.textContent = "Save";
+            input.style.borderLeft = "4px solid #faa61a"; // A little orange indicator
+            input.placeholder = "Editing message... (Esc to cancel)";
+            
+            menu.remove();
+        };
+
+        document.getElementById('del-opt').onclick = () => {
+            if (confirm("Permanently delete this message?")) {
+                chat.sendMessage({ type: 'delete-message', id: msg.id, room: currentRoom, username });
+            }
+            menu.remove();
+        };
+
+        const closeMenu = () => { menu.remove(); window.removeEventListener('click', closeMenu); };
+        setTimeout(() => window.addEventListener('click', closeMenu), 10);
     }
 
     function renderRoomList() {
@@ -137,18 +190,48 @@ function initializeApp() {
     sendBtn.onclick = () => {
         const content = input.value.trim();
         if (!content || !currentRoom) return;
-        const msgId = crypto.randomUUID();
-        const msgData = { 
-            type: 'chat', id: msgId, room: currentRoom, 
-            username, content, timestamp: Date.now() 
-        };
-        addMessage(msgData, true);
-        pendingMessages.push(msgData);
-        chat.sendMessage(msgData);
+        if (editingMessageId) {
+            // --- SAVE THE EDIT ---
+            chat.sendMessage({
+                type: 'edit-message',
+                id: editingMessageId,
+                room: currentRoom,
+                username: username,
+                newContent: content
+            });
+            
+            // Reset the UI
+            exitEditMode();
+        } else {
+            // --- SEND NEW MESSAGE (Original Logic) ---
+            const msgId = crypto.randomUUID();
+            const msgData = { 
+                type: 'chat', id: msgId, room: currentRoom, 
+                username, content, timestamp: Date.now() 
+            };
+            addMessage(msgData, true);
+            pendingMessages.push(msgData);
+            chat.sendMessage(msgData);
+        }
         input.value = '';
     };
 
-    input.onkeydown = (e) => { if (e.key === 'Enter') sendBtn.click(); };
+    function exitEditMode() {
+        editingMessageId = null;
+        sendBtn.textContent = "Send";
+        input.style.borderLeft = "none";
+        input.placeholder = "Message...";
+        input.value = '';
+    }
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            sendBtn.click();
+        }
+        if (e.key === 'Escape' && editingMessageId) {
+            exitEditMode();
+        }
+    };
 
     confirmRoomBtn.onclick = () => {
         const name = newRoomInput.value.trim();
@@ -210,6 +293,20 @@ function initializeApp() {
                 break;
             case 'user-list':
                 renderUserList(msg.users);
+                break;
+            case 'message-edited':
+                const el = document.getElementById(`msg-${msg.id}`);
+                if (el) {
+                    el.querySelector('.content').textContent = msg.newContent;
+                    // Add edited tag if not there
+                    if (!el.querySelector('small')) {
+                        el.querySelector('.meta').innerHTML += '<small style="opacity:0.5; margin-left:5px;">(edited)</small>';
+                    }
+                }
+                break;
+            case 'message-deleted':
+                const toDel = document.getElementById(`msg-${msg.id}`);
+                if (toDel) toDel.remove();
                 break;
         }
     });
