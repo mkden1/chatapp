@@ -138,7 +138,7 @@ wss.on('connection', (ws) => {
   ws.on('message', async (data) => {
     try {
       const msg = JSON.parse(data.toString());
-      const { id, room, username, content, timestamp } = msg;
+      const { id, room, username, content, timestamp, newContent } = msg;
       switch (msg.type) {
           case 'identify':
               const res = await pool.query(
@@ -172,7 +172,7 @@ wss.on('connection', (ws) => {
               break;
           case 'edit-message':
 
-              if (content.length > 5000) {
+              if (newContent.length > 5000) {
                   console.warn(`Blocked oversized message from ${username}`);
                   return;
               }
