@@ -25,6 +25,9 @@ let GIPHY_API_KEY = null;
 
 let editingMessageId = null; // Stores the ID of the message being edited
 
+let typingTimeout = new Set();
+let isCurrentlyTyping = false;
+
 // 3. UI INITIALIZATION
 function initializeApp() {
     // Get all elements by ID
@@ -92,8 +95,7 @@ function initializeApp() {
         console.warn("GIF Picker elements missing from HTML. GIF feature disabled.");
     }
 
-    let typingTimeout = new Set();
-    let isCurrentlyTyping = false;
+
 
     input.oninput = () => {
         // If we aren't already marked as typing, tell the server
@@ -327,6 +329,7 @@ function initializeApp() {
         currentRoom = roomName;
         messagesDiv.innerHTML = '';
         messageElements.clear();
+        typingUsers.clear();
         chat.sendMessage({ type: 'join-room', room: currentRoom });
         renderRoomList();
     }
@@ -422,26 +425,7 @@ function initializeApp() {
         }
     });
 
-    function updateTypingDisplay() {
-        let indicator = document.getElementById('typing-indicator');
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.id = 'typing-indicator';
-            indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin: 5px 20px; font-style: italic; min-height: 1.2rem;";
-            messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
-        }
 
-        const users = Array.from(typingUsers);
-        if (users.length === 0) {
-            indicator.textContent = '';
-        } else if (users.length === 1) {
-            indicator.textContent = `${users[0]} is typing...`;
-        } else if (users.length === 2) {
-            indicator.textContent = `${users[0]} and ${users[1]} are typing...`;
-        } else {
-            indicator.textContent = 'Several people are typing...';
-        }
-    }
 
     chat.onMessage((msg) => {
         switch (msg.type) {
@@ -516,4 +500,25 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     initializeApp();
+}
+
+function updateTypingDisplay() {
+    let indicator = document.getElementById('typing-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'typing-indicator';
+        indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin: 5px 20px; font-style: italic; min-height: 1.2rem;";
+        messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
+    }
+
+    const users = Array.from(typingUsers);
+    if (users.length === 0) {
+        indicator.textContent = '';
+    } else if (users.length === 1) {
+        indicator.textContent = `${users[0]} is typing...`;
+    } else if (users.length === 2) {
+        indicator.textContent = `${users[0]} and ${users[1]} are typing...`;
+    } else {
+        indicator.textContent = 'Several people are typing...';
+    }
 }
