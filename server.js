@@ -249,7 +249,20 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    broadcastUserList(); // Update online list when someone leaves
+    // 1. Existing logic to update user list
+    broadcastUserList(); 
+
+    // 2. Clear typing status if they were typing
+    if (ws.user && ws.currentRoom) {
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN && client.currentRoom === ws.currentRoom) {
+                client.send(JSON.stringify({ 
+                    type: 'user-stop-typing', 
+                    username: ws.user.username 
+                }));
+            }
+        });
+    }
   });
 });
 

@@ -92,7 +92,7 @@ function initializeApp() {
         console.warn("GIF Picker elements missing from HTML. GIF feature disabled.");
     }
 
-    let typingTimeout;
+    let typingTimeout = new Set();
     let isCurrentlyTyping = false;
 
     input.oninput = () => {
@@ -422,6 +422,27 @@ function initializeApp() {
         }
     });
 
+    function updateTypingDisplay() {
+        let indicator = document.getElementById('typing-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'typing-indicator';
+            indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin: 5px 20px; font-style: italic; min-height: 1.2rem;";
+            messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
+        }
+
+        const users = Array.from(typingUsers);
+        if (users.length === 0) {
+            indicator.textContent = '';
+        } else if (users.length === 1) {
+            indicator.textContent = `${users[0]} is typing...`;
+        } else if (users.length === 2) {
+            indicator.textContent = `${users[0]} and ${users[1]} are typing...`;
+        } else {
+            indicator.textContent = 'Several people are typing...';
+        }
+    }
+
     chat.onMessage((msg) => {
         switch (msg.type) {
             case 'identified':
@@ -444,6 +465,10 @@ function initializeApp() {
                 pendingMessages.forEach(p => {
                     if (p.room === currentRoom) addMessage(p, true);
                 });
+                setTimeout(() => {
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }, 50);
+
                 break;
             case 'chat':
                 if (msg.room === currentRoom) {
@@ -474,20 +499,13 @@ function initializeApp() {
                 if (toDel) toDel.remove();
                 break;
             case 'user-typing':
-                // Find or create a typing indicator element
-                let indicator = document.getElementById('typing-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('div');
-                    indicator.id = 'typing-indicator';
-                    indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin-bottom: 5px; margin-left: 20px; font-style: italic;";
-                    messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
-                }
-                indicator.textContent = `${msg.username} is typing...`;
+                typingUsers.add(msg.username);
+                updateTypingDisplay();
                 break;
 
             case 'user-stop-typing':
-                const stopIndicator = document.getElementById('typing-indicator');
-                if (stopIndicator) stopIndicator.textContent = '';
+                typingUsers.delete(msg.username);
+                updateTypingDisplay();
                 break;
         }
     });
