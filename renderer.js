@@ -92,6 +92,27 @@ function initializeApp() {
         console.warn("GIF Picker elements missing from HTML. GIF feature disabled.");
     }
 
+    let typingTimeout;
+    let isCurrentlyTyping = false;
+
+    input.oninput = () => {
+        // If we aren't already marked as typing, tell the server
+        if (!isCurrentlyTyping) {
+            isCurrentlyTyping = true;
+            chat.sendMessage({ type: 'typing', room: currentRoom, username });
+        }
+
+        // Clear the existing timer
+        clearTimeout(typingTimeout);
+
+        // Set a timer to reset our typing state after 1.5 seconds of silence
+        typingTimeout = setTimeout(() => {
+            isCurrentlyTyping = false;
+            // Optional: Tell the server we stopped so others can hide the indicator immediately
+            chat.sendMessage({ type: 'stop-typing', room: currentRoom, username });
+        }, 1500);
+    };
+
     async function fetchTrendingGifs() {
         if (!GIPHY_API_KEY) return;
 
@@ -451,6 +472,22 @@ function initializeApp() {
             case 'message-deleted':
                 const toDel = document.getElementById(`msg-${msg.id}`);
                 if (toDel) toDel.remove();
+                break;
+            case 'user-typing':
+                // Find or create a typing indicator element
+                let indicator = document.getElementById('typing-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.id = 'typing-indicator';
+                    indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin-bottom: 5px; margin-left: 20px; font-style: italic;";
+                    messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
+                }
+                indicator.textContent = `${msg.username} is typing...`;
+                break;
+
+            case 'user-stop-typing':
+                const stopIndicator = document.getElementById('typing-indicator');
+                if (stopIndicator) stopIndicator.textContent = '';
                 break;
         }
     });

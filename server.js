@@ -166,9 +166,13 @@ wss.on('connection', (ws) => {
               break;
           case 'create-room':
               await pool.query('INSERT INTO rooms (name) VALUES ($1) ON CONFLICT DO NOTHING', [msg.room]);
-              
+              const updatedRooms = await getAllRooms();
+              const roomListMsg = JSON.stringify({ type: 'room-list', rooms: updatedRooms });
+
               // Broadcast new room list to everyone
-              wss.clients.forEach(c => c.send(JSON.stringify({ type: 'room-list', rooms })));
+              wss.clients.forEach(c => {
+                  if (c.readyState === WebSocket.OPEN) c.send(roomListMsg);
+              });
               break;
           case 'edit-message':
 
@@ -216,6 +220,21 @@ wss.on('connection', (ws) => {
                 if (client.readyState === WebSocket.OPEN && client.currentRoom === room) {
                   client.send(JSON.stringify(msg));
                 }
+              });
+              break;
+
+          case 'typing':
+          case 'stop-typing':
+              wss.clients.forEach(client => {
+                  if (client.readyState === WebSocket.OPEN && 
+                      client.currentRoom === msg.room && 
+                      client.user?.username !== msg.username) {
+                      // Forward the specific typing state to everyone else in the room
+                      client.send(JSON.stringify({ 
+                          type: msg.type === 'typing' ? 'user-typing' : 'user-stop-typing', 
+                          username: msg.username 
+                      }));
+                  }
               });
               break;
       }
