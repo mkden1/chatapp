@@ -19,13 +19,10 @@ let availableRooms = [];
 const messageElements = new Map(); 
 let pendingMessages = []; 
 let isIdentified = false;
-
 let GIPHY_API_KEY = null;
-
-
 let editingMessageId = null; // Stores the ID of the message being edited
-
-let typingTimeout = new Set();
+let messagesDiv;
+let typingTimeout;
 let isCurrentlyTyping = false;
 
 let typingUsers = new Set();
@@ -33,7 +30,7 @@ let typingUsers = new Set();
 // 3. UI INITIALIZATION
 function initializeApp() {
     // Get all elements by ID
-    const messagesDiv = document.getElementById('messages');
+    messagesDiv = document.getElementById('messages');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusSpan = document.getElementById('statusText'); // Matches your HTML
@@ -506,12 +503,16 @@ if (document.readyState === 'loading') {
 
 function updateTypingDisplay() {
     let indicator = document.getElementById('typing-indicator');
-    if (!indicator) {
+    
+    // Safety check: if indicator isn't in HTML, create it near messagesDiv
+    if (!indicator && messagesDiv) {
         indicator = document.createElement('div');
         indicator.id = 'typing-indicator';
         indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin: 5px 20px; font-style: italic; min-height: 1.2rem;";
         messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
     }
+
+    if (!indicator) return;
 
     const users = Array.from(typingUsers);
     if (users.length === 0) {
