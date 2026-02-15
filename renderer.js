@@ -28,6 +28,8 @@ let editingMessageId = null; // Stores the ID of the message being edited
 let typingTimeout = new Set();
 let isCurrentlyTyping = false;
 
+let typingUsers = new Set();
+
 // 3. UI INITIALIZATION
 function initializeApp() {
     // Get all elements by ID
