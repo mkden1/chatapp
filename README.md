@@ -31,7 +31,7 @@ The Electron app is a thin shell: `main.js` opens a window loading `public/index
 ## Prerequisites
 
 - Node.js 18+
-- PostgreSQL, local or hosted (e.g. Render, Supabase)
+- PostgreSQL, local or hosted (e.g. Render, Supabase) — or Docker, to run the bundled local one
 - A [Giphy API key](https://developers.giphy.com/) (optional — GIF search is disabled without one)
 
 ## Getting started
@@ -50,6 +50,12 @@ The Electron app is a thin shell: `main.js` opens a window loading `public/index
 
    Set `DATABASE_URL` to your PostgreSQL connection string and `GIPHY_API_KEY` to your Giphy key. `.env` is gitignored. SSL is enabled automatically unless the database host is `localhost` or `127.0.0.1`.
 
+   To use the bundled local Postgres instead of your own, leave `DATABASE_URL` as the `.env.example` default and start it with:
+
+   ```bash
+   docker compose up -d
+   ```
+
 3. Start the server:
 
    ```bash
@@ -67,6 +73,7 @@ The Electron app is a thin shell: `main.js` opens a window loading `public/index
 | `DATABASE_URL` | yes | PostgreSQL connection string |
 | `GIPHY_API_KEY` | no | Enables GIF search and trending GIFs |
 | `PORT` | no | Defaults to `3000` |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` | only for `docker compose up` | Must match the credentials and port in `DATABASE_URL` |
 
 ## WebSocket protocol
 
