@@ -13,10 +13,10 @@ const chat = isElectron ? window.chatAPI : {
 };
 
 // The Electron client loads index.html from a file:// origin, so relative
-// fetches can't reach the server. It always talks to the deployed instance,
-// matching the WebSocket URL hardcoded in main.js.
-const ELECTRON_HTTP_BASE = 'https://localhost:3000';
-const httpBase = isElectron ? ELECTRON_HTTP_BASE : '';
+// fetches can't reach the server. main.js resolves the actual server's
+// http(s) base (from DESKTOP_SERVER_URL, see .env.example) and preload.js
+// hands it to us; the browser client just uses its own origin.
+const httpBase = isElectron ? (chat.httpBase || '') : '';
 
 // 2. STATE (Restored original state variables)
 let username = null;

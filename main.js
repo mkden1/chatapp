@@ -1,6 +1,10 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const { app, BrowserWindow, ipcMain } = require('electron');
 const WebSocket = require('ws');
+const { resolveServerUrls } = require('./serverUrl');
+
+const { wsUrl: SERVER_WS_URL, httpBase: SERVER_HTTP_BASE } = resolveServerUrls(process.env.DESKTOP_SERVER_URL);
 
 if (process.argv.includes('--instance=2')) {
   app.setPath('userData', app.getPath('userData') + '-2');
@@ -53,6 +57,10 @@ ipcMain.on('send-message', (event, messageObject) => {
   sendWebSocketMessage(messageObject);
 });
 
+ipcMain.on('get-http-base-sync', (event) => {
+  event.returnValue = SERVER_HTTP_BASE;
+});
+
 // ---------------- Send to Renderer ----------------
 function sendToRenderer(channel, payload) {
   if (rendererReady && win && win.webContents) {
@@ -69,7 +77,7 @@ const RECONNECT_INTERVAL = 2000;
 let reconnectTimeout = null;
 
 function connectWebSocket() {
-  ws = new WebSocket('ws://localhost:3000');
+  ws = new WebSocket(SERVER_WS_URL);
 
   ws.on('open', () => {
     console.log("WS OPEN");
