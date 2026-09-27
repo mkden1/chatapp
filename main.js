@@ -28,7 +28,7 @@ function createWindow() {
     }
   });
 
-  win.loadFile('index.html');
+  win.loadFile('public/index.html');
 
   win.webContents.once('did-finish-load', () => {
     console.log("Renderer ready");

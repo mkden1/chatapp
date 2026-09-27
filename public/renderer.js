@@ -12,14 +12,19 @@ const chat = isElectron ? window.chatAPI : {
     onStatus: (callback) => { window.onStatusChange = callback; }
 };
 
+// The Electron client loads index.html from a file:// origin, so relative
+// fetches can't reach the server. It always talks to the deployed instance,
+// matching the WebSocket URL hardcoded in main.js.
+const ELECTRON_HTTP_BASE = 'https://localhost:3000';
+const httpBase = isElectron ? ELECTRON_HTTP_BASE : '';
+
 // 2. STATE (Restored original state variables)
 let username = null;
 let currentRoom = null;
 let availableRooms = [];
-const messageElements = new Map(); 
-let pendingMessages = []; 
+const messageElements = new Map();
+let pendingMessages = [];
 let isIdentified = false;
-let GIPHY_API_KEY = null;
 let editingMessageId = null; // Stores the ID of the message being edited
 let messagesDiv;
 let typingTimeout;
@@ -79,13 +84,8 @@ function initializeApp() {
         gifSearch.oninput = async () => {
             const query = gifSearch.value.trim();
             if (query.length < 2) return;
-            
-            if (!GIPHY_API_KEY) {
-                console.error("Giphy Key not received from server yet");
-                return;
-            }
 
-            const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${query}&limit=20&rating=g`;
+            const url = `${httpBase}/giphy/search?q=${encodeURIComponent(query)}`;
             const response = await fetch(url);
             const { data } = await response.json();
             renderGifs(data);
@@ -115,11 +115,9 @@ function initializeApp() {
     };
 
     async function fetchTrendingGifs() {
-        if (!GIPHY_API_KEY) return;
-
         // Trending endpoint shows what's popular right now
-        const url = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=g`;
-        
+        const url = `${httpBase}/giphy/trending`;
+
         try {
             const response = await fetch(url);
             const { data } = await response.json();
@@ -154,6 +152,7 @@ function initializeApp() {
 
     function renderGifs(results) {
         gifResults.innerHTML = '';
+        if (!Array.isArray(results)) return;
         results.forEach(gif => {
             const img = document.createElement('img');
             // 'fixed_width_small' is perfect for the picker grid
@@ -429,7 +428,6 @@ function initializeApp() {
     chat.onMessage((msg) => {
         switch (msg.type) {
             case 'identified':
-                GIPHY_API_KEY = msg.giphyKey;
                 isIdentified = true;
                 chat.sendMessage({ type: 'get-rooms' });
                 if (currentRoom) chat.sendMessage({ type: 'join-room', room: currentRoom });
@@ -504,11 +502,11 @@ if (document.readyState === 'loading') {
 function updateTypingDisplay() {
     let indicator = document.getElementById('typing-indicator');
     
-    // Safety check: if indicator isn't in HTML, create it near messagesDiv
     if (!indicator && messagesDiv) {
         indicator = document.createElement('div');
         indicator.id = 'typing-indicator';
-        indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; margin: 5px 20px; font-style: italic; min-height: 1.2rem;";
+        // Remove min-height and margins from the base style
+        indicator.style.cssText = "font-size: 0.8rem; color: #8e9297; font-style: italic; transition: all 0.2s;";
         messagesDiv.parentNode.insertBefore(indicator, messagesDiv.nextSibling);
     }
 
@@ -517,11 +515,19 @@ function updateTypingDisplay() {
     const users = Array.from(typingUsers);
     if (users.length === 0) {
         indicator.textContent = '';
-    } else if (users.length === 1) {
-        indicator.textContent = `${users[0]} is typing...`;
-    } else if (users.length === 2) {
-        indicator.textContent = `${users[0]} and ${users[1]} are typing...`;
+        indicator.style.margin = "0"; // Collapse margins when empty
+        indicator.style.minHeight = "0"; // Collapse height when empty
     } else {
-        indicator.textContent = 'Several people are typing...';
+        // Restore spacing only when someone is typing
+        indicator.style.margin = "5px 20px";
+        indicator.style.minHeight = "1.2rem";
+        
+        if (users.length === 1) {
+            indicator.textContent = `${users[0]} is typing...`;
+        } else if (users.length === 2) {
+            indicator.textContent = `${users[0]} and ${users[1]} are typing...`;
+        } else {
+            indicator.textContent = 'Several people are typing...';
+        }
     }
 }
