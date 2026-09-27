@@ -1,2 +1,10 @@
-proj.env
+.env
 node_modules/
+
+# Electron packaging output
+dist/
+out/
+
+# Editor / OS
+.vscode/
+.DS_Store
