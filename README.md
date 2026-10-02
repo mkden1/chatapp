@@ -64,7 +64,7 @@ The Electron app is a thin shell: `main.js` opens a window loading `public/index
 
 4. Open two clients against it:
    - **Browser:** open http://localhost:3000 (or your configured `PORT`) in a normal browser tab. Open it twice to chat with yourself.
-   - **Desktop:** `npm start`. By default it connects to the deployed instance; set `DESKTOP_SERVER_URL` in `.env` (see `.env.example`) to point it at your local server instead.
+   - **Desktop:** `npm start`. By default it connects to `ws://localhost:3000`; set `DESKTOP_SERVER_URL` in `.env` (see `.env.example`) to point it at a deployed server instead.
 
 ## Configuration
 
@@ -74,7 +74,7 @@ The Electron app is a thin shell: `main.js` opens a window loading `public/index
 | `GIPHY_API_KEY` | no | Enables GIF search and trending GIFs |
 | `PORT` | no | Defaults to `3000` |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_PORT` | only for `docker compose up` | Must match the credentials and port in `DATABASE_URL` |
-| `DESKTOP_SERVER_URL` | no | Overrides which server the Electron desktop client connects to; defaults to the deployed instance |
+| `DESKTOP_SERVER_URL` | no | Overrides which server the Electron desktop client connects to; defaults to `ws://localhost:3000` |
 
 ## WebSocket protocol
 
@@ -97,7 +97,7 @@ The username on `chat`, `edit-message` and `delete-message` is always taken from
 This is a demo project, not production-ready.
 
 - There's no authentication: any client can `identify` as any username with no password. Editing and deleting are restricted to the identified connection's own messages, but nothing stops someone from picking a name someone else is already using.
-- The Electron client's server URL defaults to the deployed instance but is configurable via `DESKTOP_SERVER_URL` in `.env` (see Configuration above) rather than hardcoded.
+- The Electron client's server URL defaults to `ws://localhost:3000` but is configurable via `DESKTOP_SERVER_URL` in `.env` (see Configuration above) rather than hardcoded.
 - Messages are capped at 5000 characters, enforced by both the input and the server.
 - Run a second desktop instance for local testing with `npm start -- --instance=2` (keeps a separate Electron user-data directory).
 
